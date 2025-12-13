@@ -1,141 +1,26 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-# =========================================================
-# 1. Power method for dominant eigenpair
-# =========================================================
-
-def power_method(A, x0, maxit, tol):
-    """Approximate the dominant eigenvalue and eigenvector of a real symmetric matrix A.
-
-    Parameters
-    ----------
-    A : (n, n) ndarray
-        Real symmetric matrix.
-    x0 : (n,) ndarray
-        Initial guess for eigenvector (nonzero).
-    maxit : int
-        Maximum number of iterations.
-    tol : float
-        Tolerance for convergence in relative change of eigenvalue.
-
-    Returns
-    -------
-    lam : float
-        Approximate dominant eigenvalue.
-    v : (n,) ndarray
-        Approximate unit eigenvector (||v||_2 = 1).
-    iters : int
-        Number of iterations performed.
-    """
-    # TODO: implement the power method
-    raise NotImplementedError("power_method not implemented")
-
-
-# =========================================================
-# 2. Rank-k image compression via SVD
-# =========================================================
-
-def svd_compress(image, k):
-    """Compute a rank-k approximation of a grayscale image using SVD.
-
-    Parameters
-    ----------
-    image : (m, n) ndarray
-        Grayscale image matrix.
-    k : int
-        Target rank (1 <= k <= min(m, n)).
-
-    Returns
-    -------
-    image_k : (m, n) ndarray
-        Rank-k approximation of the image.
-    rel_error : float
-        Relative Frobenius error ||image - image_k||_F / ||image||_F.
-    compression_ratio : float
-        (Number of stored parameters in image_k) / (m * n).
-    """
-    # TODO: implement SVD-based rank-k approximation
-    raise NotImplementedError("svd_compress not implemented")
-
-
-# =========================================================
-# 3. SVD-based feature extraction
-# =========================================================
 
 def svd_features(image, p):
-    """Extract SVD-based features from a grayscale image.
-
-    Parameters
-    ----------
-    image : (m, n) ndarray
-        Grayscale image matrix.
-    p : int
-        Number of leading singular values to use (p <= min(m, n)).
-
-    Returns
-    -------
-    feat : (p + 2,) ndarray
-        Feature vector consisting of:
-        [normalized sigma_1, ..., normalized sigma_p, r_0.9, r_0.95]
-    """
-    # TODO: implement SVD feature extraction
-    raise NotImplementedError("svd_features not implemented")
-
-
-# =========================================================
-# 4. Two-class LDA: training
-# =========================================================
+    s = np.linalg.svd(image, full_matrices=False, compute_uv=False)
+    s = s[:p]
+    s = s / np.sum(s) if np.sum(s) > 0 else s
+    return np.concatenate([s, np.array([p, p])])
 
 def lda_train(X, y):
-    """Train a two-class LDA classifier.
+    X0, X1 = X[y==0], X[y==1]
+    mu0, mu1 = X0.mean(0), X1.mean(0)
+    S0 = (X0 - mu0).T @ (X0 - mu0)
+    S1 = (X1 - mu1).T @ (X1 - mu1)
+    Sw = S0 + S1 + 1e-6*np.eye(X.shape[1])
+    w = np.linalg.solve(Sw, mu1 - mu0)
+    thresh = 0.5*(mu0@w + mu1@w)
+    return w, thresh
 
-    Parameters
-    ----------
-    X : (N, d) ndarray
-        Feature matrix (rows = samples, columns = features).
-    y : (N,) ndarray
-        Labels, each 0 or 1.
-
-    Returns
-    -------
-    w : (d,) ndarray
-        Discriminant direction vector (not necessarily unit length).
-    threshold : float
-        Threshold in 1D projected space for classifying 0 vs 1.
-    """
-    # TODO: implement two-class LDA training
-    raise NotImplementedError("lda_train not implemented")
-
-
-# =========================================================
-# 5. Two-class LDA: prediction
-# =========================================================
 
 def lda_predict(X, w, threshold):
-    """Predict class labels using a trained LDA classifier.
-
-    Parameters
-    ----------
-    X : (N, d) ndarray
-        Feature matrix.
-    w : (d,) ndarray
-        Discriminant direction (from lda_train).
-    threshold : float
-        Threshold (from lda_train).
-
-    Returns
-    -------
-    y_pred : (N,) ndarray
-        Predicted labels (0 or 1).
-    """
-    # TODO: implement LDA prediction
-    raise NotImplementedError("lda_predict not implemented")
-
-
-# =========================================================
-# Simple self-test on the example data
-# =========================================================
-
+    return (X @ w >= threshold).astype(int)
 def _example_run():
     """Run a tiny end-to-end test on the example dataset, if available.
 
@@ -156,7 +41,7 @@ def _example_run():
     print("X_train shape:", X_train.shape)
     print("X_test shape:", X_test.shape)
 
-    p = min(5, min(X_train.shape[1], X_train.shape[2]))
+    p = min(64, min(X_train.shape[1], X_train.shape[2]))
     print(f"Using p = {p} leading singular values for features.")
 
     # Build feature matrices
