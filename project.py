@@ -22,10 +22,10 @@ def svd_features(image,p,tol=1e-12):
 
     #get the top p singular values
     top_p_singular_values = S[:p]/np.sum(S) if np.sum(S) >= tol else S[:p]  # normalized singular values
-    r90 = float(np.searchsorted(normalized_cumulative_energy, 0.90) + 1)
     r95 = float(np.searchsorted(normalized_cumulative_energy, 0.95) + 1)
+    r99 = float(np.searchsorted(normalized_cumulative_energy, 0.99) + 1)
 
-    return np.concatenate([top_p_singular_values, np.array([r90, r95],dtype=np.float32)])
+    return np.concatenate([top_p_singular_values, np.array([r95, r99],dtype=np.float32)])
 
 def lda_train(X,y):
     """
