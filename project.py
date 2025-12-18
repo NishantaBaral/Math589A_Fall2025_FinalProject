@@ -1,5 +1,28 @@
 import numpy as np
 
+#compute the "roughness" of images by looking at smaller blocks
+def block_roughness_features(image, block_size):
+    A = np.asarray(image, dtype=float)
+    #eventhough H and W are 64, not a good cofing practice to assume that. so we get the shape dynamically.
+    H, W = A.shape
+    rough = []
+    #loop over blocks row-wise and column-wise
+    for i in range(1, H, block_size):
+        for j in range(1, W, block_size):
+            #slices out one block of size block_size x block_size
+            B = A[i:i+block_size, j:j+block_size]
+            #compute the horizontal finite difference wirhin the block
+            dx = B[:, 1:] - B[:, :-1]
+            #compute the vertical finite difference within the block
+            dy = B[1:, :] - B[:-1, :]
+            #now we have how fast intensity is changing in x and y direction within the block.
+            #we now compute the mean squared finite difference as a measure of roughness within the block
+            #mean squared finite difference between adjacent pixels in x and y direction and sum them up to get roughness
+            r = np.mean(dx*dx) + np.mean(dy*dy)
+            rough.append(r)
+    rough = np.array(rough, dtype=float)
+    return np.array([rough.mean(), rough.std(), rough.max()], dtype=float)
+
 def svd_features(image,p,tol=1e-12):
     """
     Compute the top p singular values of the input image.
@@ -25,7 +48,10 @@ def svd_features(image,p,tol=1e-12):
     r95 = float(np.searchsorted(normalized_cumulative_energy, 0.95) + 1)
     r99 = float(np.searchsorted(normalized_cumulative_energy, 0.99) + 1)
 
-    return np.concatenate([top_p_singular_values, np.array([r95, r99],dtype=np.float32)])
+    # get roughness features, trial and error shows block size of 8 works well.
+    rough_feat = block_roughness_features(image, block_size=8)
+    return np.concatenate([top_p_singular_values, np.array([r95, r99], dtype=np.float32), rough_feat])
+
 
 def lda_train(X,y):
     """
